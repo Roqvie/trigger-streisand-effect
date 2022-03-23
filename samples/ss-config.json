@@ -1,0 +1,13 @@
+{
+    "server":"<SERVER_IP>",
+    "server_port":<PORT>,
+    "local_port":1080,
+    "password":"<PASSWORD>",
+    "timeout":300,
+    "method":"aes-256-cfb",
+    "fast_open":true,
+    "plugin":"/etc/shadowsocks-libev/v2ray-plugin",
+    "plugin_opts":"server",
+    "nameserver":"8.8.8.8",
+    "reuse_port": true
+}

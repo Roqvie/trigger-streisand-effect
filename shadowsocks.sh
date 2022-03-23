@@ -71,7 +71,7 @@ readonly PASSWORD=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
 echo " + Generated port for shadowsocks"
 echo " + Generated password for shadowsocks"
 
-
+mkdir -p generated
 cp samples/ss-config.json generated/ss-config.json
 sed -i "s/<SERVER_IP>/${SERVER_IP}/g" generated/ss-config.json
 sed -i "s/<PORT>/${PORT}/g" generated/ss-config.json

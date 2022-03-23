@@ -64,6 +64,7 @@ echo " + Enabled iptables rules"
 systemctl restart tor
 
 FINGERPRINT=$(cat /var/lib/tor/fingerprint)
+mkdir -p generated
 touch generated/tor-bridgeline.txt
 cat /var/lib/tor/pt_state/obfs4_bridgeline.txt | tail -1 > generated/tor-bridgeline.txt
 sed -i "s/<IP ADDRESS>/${SERVER_IP}/g" generated/tor-bridgeline.txt

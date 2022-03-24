@@ -65,17 +65,17 @@ cp generated/wg0.conf /etc/wireguard/wg0.conf
 sudo chmod 600 /etc/wireguard/{privatekey,wg0.conf}
 dir=$(pwd)
 echo " + Generated configuration for interface: /etc/wireguard/wg0.conf or ${dir}/generated/wg0.conf"
-sudo wg-quick up wg0
-sudo systemctl enable wg-quick@wg0
+sudo wg-quick up wg0 2> /dev/null
+sudo systemctl enable wg-quick@wg0 2> /dev/null
 echo " + Enabled wg0 interface"
 
 
-mkdor -p generated/wg-clients
+mkdir -p generated/wg-clients
 for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
   wg genkey | sudo tee keys/client_private_$client_num.key | wg pubkey | sudo tee keys/client_public_$client_num.key
-  local CLIENT_PRIVATE_KEY=$(cat keys/client_private_$client_num.key)
-  local CLIENT_PUBLIC_KEY=$(cat client_public_$client_num.key)
+  CLIENT_PRIVATE_KEY=$(cat keys/client_private_$client_num.key)
+  CLIENT_PUBLIC_KEY=$(cat client_public_$client_num.key)
   cp samples/wireguard-client.conf generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_PRIVATE_KEY>/${CLIENT_PRIVATE_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_NUM>/${client_num}/g" generated/wg-clients/wireguard-client-${client_num}.conf

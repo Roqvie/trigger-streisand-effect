@@ -41,7 +41,7 @@ function random_unused_port() {
 }
 
 
-readonly INTERFACE=$(ls /sys/class/net | grep ens 2> /dev/null)
+readonly INTERFACE=$(ls /sys/class/net | grep ens | tail 1 2> /dev/null)
 readonly SERVER_IP=$(curl ifconfig.me 2> /dev/null)
 echo " + Interface name: $INTERFACE"
 echo " + Server ip address: $SERVER_IP"
@@ -52,8 +52,8 @@ echo " + Enabled ip forwarding"
 
 mkdir -p keys
 wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key 2> /dev/null
-SERVER_PRIVATE_KEY=$(echo -n < keys/server_private.key)
-SERVER_PUBLIC_KEY=$(echo -n < keys/server_public.key)
+SERVER_PRIVATE_KEY=$(<keys/server_private.key)
+SERVER_PUBLIC_KEY=$(<keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated
@@ -73,9 +73,9 @@ echo " + Enabled wg0 interface"
 mkdir -p generated/wg-clients
 for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
-  wg genkey | sudo tee keys/client_private_$client_num.key | wg pubkey | sudo tee keys/client_public_$client_num.key
-  CLIENT_PRIVATE_KEY=$(echo -n < keys/client_private_$client_num.key)
-  CLIENT_PUBLIC_KEY=$(echo -n < client_public_$client_num.key)
+  wg genkey | sudo tee keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
+  CLIENT_PRIVATE_KEY=$(<keys/client_private.key)
+  CLIENT_PUBLIC_KEY=$(<client_public.key)
   cp samples/wireguard-client.conf generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_PRIVATE_KEY>/${CLIENT_PRIVATE_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_NUM>/${client_num}/g" generated/wg-clients/wireguard-client-${client_num}.conf

@@ -51,16 +51,17 @@ sysctl -p > /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys
-wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key
-SERVER_PRIVATE_KEY=$(< keys/server_private.key)
-SERVER_PUBLIC_KEY=$(< keys/server_public.key)
+wg genkey | sudo tee keys/server_private.key
+SERVER_PRIVATE_KEY=$(cat keys/server_private.key)
+sudo cat keys/server_private.key | wg pubkey | sudo tee keys/server_public.key
+SERVER_PUBLIC_KEY=$(cat keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated
-cp samples/wg0.conf generated/wg0.conf
-sed -i "s/<SERVER_PORT>/${SERVER_PORT}/g" generated/wg0.conf
-sed -i "s/<SERVER_PRIVATE_KEY>/${SERVER_PRIVATE_KEY}/g" generated/wg0.conf
-sed -i "s/<INTERFACE>/${INTERFACE}/g" generated/wg0.conf
+conf="[Interface]\nAddress = 10.0.0.1/24\nSaveConfig = true\nListenPort = ${SERVER_PORT}\nPrivateKey = ${SERVER_PRIVATE_KEY}\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n"
+
+ > generated/wg0.conf
+echo -e $conf > generated/wg0.conf
 cp generated/wg0.conf /etc/wireguard/wg0.conf
 sudo chmod 600 /etc/wireguard/wg0.conf
 dir=$(pwd)
@@ -73,15 +74,13 @@ echo " + Enabled wg0 interface"
 mkdir -p generated/wg-clients
 for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
-  wg genkey | sudo tee keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
-  CLIENT_PRIVATE_KEY=$(<keys/client_private.key)
-  CLIENT_PUBLIC_KEY=$(<keys/client_public.key)
-  cp samples/wireguard-client.conf generated/wg-clients/wireguard-client-${client_num}.conf
-  sed -i "s/<CLIENT_PRIVATE_KEY>/${CLIENT_PRIVATE_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
-  sed -i "s/<CLIENT_NUM>/${client_num}/g" generated/wg-clients/wireguard-client-${client_num}.conf
-  sed -i "s/<SERVER_PUBLIC_KEY>/${SERVER_PUBLIC_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
-  sed -i "s/<SERVER_IP_ADDRESS>/${SERVER_IP}/g" generated/wg-clients/wireguard-client-${client_num}.conf
-  sed -i "s/<SERVER_PORT>/${SERVER_PORT}/g" generated/wg-clients/wireguard-client-${client_num}.conf
+  wg genkey | sudo tee keys/client_private.key
+  CLIENT_PRIVATE_KEY=$(< keys/client_private.key)
+  sudo cat keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
+  CLEINT_PUBLIC_KEY=$(< keys/client_public.key)
+  client_conf="[Interface]\nPrivateKey = ${CLIENT_PRIVATE_KEY}\nAddress = 10.0.0.${client_num}/24\n\n[Peer]\nPublicKey = ${SERVER_PUBLIC_KEY}\nEndpoint = ${SERVER_IP}:${SERVER_PORT}\nAllowedIPs = 0.0.0.0/0"
+   > generated/wg-clients/wireguard-client-${client_num}.conf
+  echo -e $client_conf > generated/wg-clients/wireguard-client-${client_num}.conf
   wg set wg0 peer $CLIENT_PUBLIC_KEY allowed-ips 10.0.0.$client_num
   echo -e "\n    + Client ${client_num} conf file:\n      ${dir}/generated/wg-clients/wireguard-client-${client_num}.conf"
   qrencode -t ansiutf8 < generated/wg-clients/wireguard-client-${client_num}.conf

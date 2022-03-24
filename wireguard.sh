@@ -41,7 +41,7 @@ function random_unused_port() {
 }
 
 
-readonly INTERFACE=$(ls /sys/class/net | grep ens | tail 1 2> /dev/null)
+readonly INTERFACE=$(ls /sys/class/net | grep ens | head -n 1 2> /dev/null)
 readonly SERVER_IP=$(curl ifconfig.me 2> /dev/null)
 echo " + Interface name: $INTERFACE"
 echo " + Server ip address: $SERVER_IP"
@@ -62,7 +62,7 @@ sed -i "s/<SERVER_PORT>/${SERVER_PORT}/g" generated/wg0.conf
 sed -i "s/<SERVER_PRIVATE_KEY>/${SERVER_PRIVATE_KEY}/g" generated/wg0.conf
 sed -i "s/<INTERFACE>/${INTERFACE}/g" generated/wg0.conf
 cp generated/wg0.conf /etc/wireguard/wg0.conf
-sudo chmod 600 /etc/wireguard/{privatekey,wg0.conf}
+sudo chmod 600 /etc/wireguard/wg0.conf
 dir=$(pwd)
 echo " + Generated configuration for interface: /etc/wireguard/wg0.conf or ${dir}/generated/wg0.conf"
 sudo wg-quick up wg0 2> /dev/null
@@ -75,7 +75,7 @@ for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
   wg genkey | sudo tee keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
   CLIENT_PRIVATE_KEY=$(<keys/client_private.key)
-  CLIENT_PUBLIC_KEY=$(<client_public.key)
+  CLIENT_PUBLIC_KEY=$(<keys/client_public.key)
   cp samples/wireguard-client.conf generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_PRIVATE_KEY>/${CLIENT_PRIVATE_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_NUM>/${client_num}/g" generated/wg-clients/wireguard-client-${client_num}.conf

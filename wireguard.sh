@@ -40,19 +40,19 @@ function random_unused_port() {
 }
 
 
-readonly INTERFACE=$(ls /sys/class/net | grep ens)
+readonly INTERFACE=$(ls /sys/class/net | grep ens 2> /dev/null)
 readonly SERVER_IP=$(curl ifconfig.me 2> /dev/null)
 echo " + Interface name: $INTERFACE"
 echo " + Server ip address: $SERVER_IP"
 
 echo -e "net.ipv4.ip_forward = 1\n" >> /etc/sysctl.conf
-sysctl -p
+sysctl -p 2> /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys
-wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key
-SERVER_PRIVATE_KEY=$(cat keys/server_private.key)
-SERVER_PUBLIC_KEY=$(cat keys/server_public.key)
+wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key 2> /dev/null
+SERVER_PRIVATE_KEY=$(echo -n < keys/server_private.key)
+SERVER_PUBLIC_KEY=$(echo -n < keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated

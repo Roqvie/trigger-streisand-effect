@@ -46,8 +46,8 @@ readonly SERVER_IP=$(curl ifconfig.me 2> /dev/null)
 echo " + Interface name: $INTERFACE"
 echo " + Server ip address: $SERVER_IP"
 
-echo -e "net.ipv4.ip_forward = 1\n" >> /etc/sysctl.conf
-sysctl -p 2> /dev/null
+echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+sysctl -p > /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys

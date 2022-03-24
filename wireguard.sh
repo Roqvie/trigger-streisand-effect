@@ -34,7 +34,8 @@ function random_unused_port() {
   ports_in_use=($(netstat -ltn | sed -rne '/^tcp/{/:(22|25)\>/d;s/.*:([0-9]+)\>.*/\1/p}'))
   exclude_ports=("$@")
   random_port=$(shuf -i 10000-59999 -n 1)
-  while [[ " ${ports_in_use[@]} " =~ " ${random_port} " || " ${exclude_ports[@]} " =~ " ${random_port} "$    $random_port=$(shuf -i 10000-59999 -n 1)
+  while [[ " ${ports_in_use[@]} " =~ " ${random_port} " || " ${exclude_ports[@]} " =~ " ${random_port} " ]]; do
+    $random_port=$(shuf -i 10000-59999 -n 1)
   done
   echo $random_port
 }

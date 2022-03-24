@@ -51,9 +51,9 @@ sysctl -p > /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys
-wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key 2> /dev/null
-SERVER_PRIVATE_KEY=$(<keys/server_private.key)
-SERVER_PUBLIC_KEY=$(<keys/server_public.key)
+wg genkey | sudo tee keys/server_private.key | wg pubkey | sudo tee keys/server_public.key
+SERVER_PRIVATE_KEY=$(< keys/server_private.key)
+SERVER_PUBLIC_KEY=$(< keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated

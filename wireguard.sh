@@ -74,8 +74,8 @@ mkdir -p generated/wg-clients
 for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
   wg genkey | sudo tee keys/client_private_$client_num.key | wg pubkey | sudo tee keys/client_public_$client_num.key
-  CLIENT_PRIVATE_KEY=$(cat keys/client_private_$client_num.key)
-  CLIENT_PUBLIC_KEY=$(cat client_public_$client_num.key)
+  CLIENT_PRIVATE_KEY=$(echo -n < keys/client_private_$client_num.key)
+  CLIENT_PUBLIC_KEY=$(echo -n < client_public_$client_num.key)
   cp samples/wireguard-client.conf generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_PRIVATE_KEY>/${CLIENT_PRIVATE_KEY}/g" generated/wg-clients/wireguard-client-${client_num}.conf
   sed -i "s/<CLIENT_NUM>/${client_num}/g" generated/wg-clients/wireguard-client-${client_num}.conf

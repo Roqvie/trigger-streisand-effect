@@ -81,7 +81,7 @@ for client_num in {2..11}; do
   client_conf="[Interface]\nPrivateKey = ${CLIENT_PRIVATE_KEY}\nAddress = 10.0.0.${client_num}/24\n\n[Peer]\nPublicKey = ${SERVER_PUBLIC_KEY}\nEndpoint = ${SERVER_IP}:${SERVER_PORT}\nAllowedIPs = 0.0.0.0/0"
    > generated/wg-clients/wireguard-client-${client_num}.conf
   echo -e $client_conf > generated/wg-clients/wireguard-client-${client_num}.conf
-  peer_conf="\n[Peer]\nPublicKey = ${}\nAllowedIPs = 10.0.0.${client_num}/32"
+  peer_conf="\n[Peer]\nPublicKey = ${CLIENT_PUBLIC_KEY}\nAllowedIPs = 10.0.0.${client_num}/32"
   echo -e $peer_conf >> /etc/wireguard/wg0.conf
   wg set wg0 peer $CLIENT_PUBLIC_KEY allowed-ips 10.0.0.$client_num
   echo -e "\n    + Client ${client_num} conf file:\n      ${dir}/generated/wg-clients/wireguard-client-${client_num}.conf"

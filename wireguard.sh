@@ -17,7 +17,7 @@ else
   exit 1
 fi
 
-if [[ `apt install wireguard iptables qrencode -y 2> /dev/null` ]]; then
+if [[ `apt install wireguard curl net-tools iptables qrencode -y 2> /dev/null` ]]; then
   echo ' + Pre-requirements installed: OK'
 else
   echo ' - Error while installing pre-requirements' >$2
@@ -60,7 +60,7 @@ SERVER_PORT=$(random_unused_port)
 mkdir -p generated
 conf="[Interface]\nAddress = 10.0.0.1/24\nSaveConfig = true\nListenPort = ${SERVER_PORT}\nPrivateKey = ${SERVER_PRIVATE_KEY}\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n"
 
- > generated/wg0.conf
+> generated/wg0.conf
 echo -e $conf > generated/wg0.conf
 cp generated/wg0.conf /etc/wireguard/wg0.conf
 sudo chmod 600 /etc/wireguard/wg0.conf
@@ -77,10 +77,12 @@ for client_num in {2..11}; do
   wg genkey | sudo tee keys/client_private.key
   CLIENT_PRIVATE_KEY=$(< keys/client_private.key)
   sudo cat keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
-  CLEINT_PUBLIC_KEY=$(< keys/client_public.key)
+  CLIENT_PUBLIC_KEY=$(< keys/client_public.key)
   client_conf="[Interface]\nPrivateKey = ${CLIENT_PRIVATE_KEY}\nAddress = 10.0.0.${client_num}/24\n\n[Peer]\nPublicKey = ${SERVER_PUBLIC_KEY}\nEndpoint = ${SERVER_IP}:${SERVER_PORT}\nAllowedIPs = 0.0.0.0/0"
    > generated/wg-clients/wireguard-client-${client_num}.conf
   echo -e $client_conf > generated/wg-clients/wireguard-client-${client_num}.conf
+  peer_conf="\n[Peer]\nPublicKey = ${}\nAllowedIPs = 10.0.0.${client_num}/32"
+  echo -e $peer_conf >> /etc/wireguard/wg0.conf
   wg set wg0 peer $CLIENT_PUBLIC_KEY allowed-ips 10.0.0.$client_num
   echo -e "\n    + Client ${client_num} conf file:\n      ${dir}/generated/wg-clients/wireguard-client-${client_num}.conf"
   qrencode -t ansiutf8 < generated/wg-clients/wireguard-client-${client_num}.conf

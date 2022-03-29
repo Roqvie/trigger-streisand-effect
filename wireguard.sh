@@ -51,10 +51,10 @@ sysctl -p > /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys
-wg genkey | sudo tee keys/server_private.key
+wg genkey > keys/server_private.key
 SERVER_PRIVATE_KEY=$(cat keys/server_private.key)
-sudo cat keys/server_private.key | wg pubkey | sudo tee keys/server_public.key
-SERVER_PUBLIC_KEY=$(cat keys/server_public.key)
+wg pubkey < keys/server_private.key > keys/server_public.key
+SERVER_PUBLIC_KEY=$(cat keys/server_private.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated
@@ -74,10 +74,13 @@ echo " + Enabled wg0 interface"
 mkdir -p generated/wg-clients
 for client_num in {2..11}; do
   echo " + Configuring ${client_num} client:"
-  wg genkey | sudo tee keys/client_private.key
-  CLIENT_PRIVATE_KEY=$(< keys/client_private.key)
-  sudo cat keys/client_private.key | wg pubkey | sudo tee keys/client_public.key
-  CLIENT_PUBLIC_KEY=$(< keys/client_public.key)
+
+  wg pubkey < keys/server_private.key > keys/server_publickey_client_$client_num.key
+  wg genkey | tee keys/client_private_$client_num.key | wg pubkey > keys/client_public_$client_num.key
+
+  CLIENT_PRIVATE_KEY=$(< keys/server_publickey_client_$client_num.key)
+  CLIENT_PUBLIC_KEY=$(< keys/client_public_$client_num.key)
+
   client_conf="[Interface]\nPrivateKey = ${CLIENT_PRIVATE_KEY}\nAddress = 10.0.0.${client_num}/24\n\n[Peer]\nPublicKey = ${SERVER_PUBLIC_KEY}\nEndpoint = ${SERVER_IP}:${SERVER_PORT}\nAllowedIPs = 0.0.0.0/0"
    > generated/wg-clients/wireguard-client-${client_num}.conf
   echo -e $client_conf > generated/wg-clients/wireguard-client-${client_num}.conf

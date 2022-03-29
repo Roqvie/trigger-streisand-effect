@@ -58,8 +58,8 @@ SERVER_PUBLIC_KEY=$(cat keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
 mkdir -p generated
-conf="[Interface]\nAddress = 10.0.0.1/24\nSaveConfig = true\nListenPort = ${SERVER_PORT}\nPrivateKey = ${SERVER_PRIVATE_KEY}\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n"
-
+conf="[Interface]\nAddress = 10.0.0.1/24\nSaveConfig = true\nListenPort = ${SERVER_PORT}\nPrivateKey = ${SERVER_PRIVATE_KEY}\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n"
+                                                                                                                                       
 > generated/wg0.conf
 echo -e $conf > generated/wg0.conf
 cp generated/wg0.conf /etc/wireguard/wg0.conf

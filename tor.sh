@@ -17,7 +17,7 @@ else
   exit 1
 fi
 
-if [[ `apt install tor obfs4proxy iptables -y 2> /dev/null` ]]; then
+if [[ `apt install net-tools curl tor obfs4proxy iptables -y 2> /dev/null` ]]; then
   echo ' + Pre-requirements installed: OK'
 else
   echo ' - Error while installing pre-requirements' >$2

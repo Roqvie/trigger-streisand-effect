@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Installing tor for setuping bridge wuth
-# obfs4 obfuscation proxy
+# Installing wireguard server and
+# generatying client conf files
 #
 
 
@@ -17,7 +17,7 @@ else
   exit 1
 fi
 
-if [[ `apt install wireguard curl net-tools iptables qrencode -y 2> /dev/null` ]]; then
+if [[ `apt install curl net-tools wireguard iptables qrencode -y 2> /dev/null` ]]; then
   echo ' + Pre-requirements installed: OK'
 else
   echo ' - Error while installing pre-requirements' >$2
@@ -51,17 +51,24 @@ sysctl -p > /dev/null
 echo " + Enabled ip forwarding"
 
 mkdir -p keys
-wg genkey > keys/server_private.key
+wg genkey | tee "keys/server_private.key" | wg pubkey | tee "keys/server_public.key" >/dev/null 2>&1
 SERVER_PRIVATE_KEY=$(cat keys/server_private.key)
-wg pubkey < keys/server_private.key > keys/server_public.key
-SERVER_PUBLIC_KEY=$(cat keys/server_private.key)
+SERVER_PUBLIC_KEY=$(cat keys/server_public.key)
 SERVER_PORT=$(random_unused_port)
 
+# Generate server interface config
 mkdir -p generated
-conf="[Interface]\nAddress = 10.0.0.1/24\nSaveConfig = true\nListenPort = ${SERVER_PORT}\nPrivateKey = ${SERVER_PRIVATE_KEY}\nPostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE\nPostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n"
-                                                                                                                                       
-> generated/wg0.conf
-echo -e $conf > generated/wg0.conf
+
+cat <<-EOF > "generated/wg0.conf"
+[Interface]
+Address = 10.0.0.1/24
+SaveConfig = true
+ListenPort = ${SERVER_PORT}
+PrivateKey = ${SERVER_PRIVATE_KEY}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ${INTERFACE} -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ${INTERFACE} -j MASQUERADE\n
+EOF
+
 cp generated/wg0.conf /etc/wireguard/wg0.conf
 sudo chmod 600 /etc/wireguard/wg0.conf
 dir=$(pwd)
@@ -71,23 +78,38 @@ sudo systemctl enable wg-quick@wg0 2> /dev/null
 echo " + Enabled wg0 interface"
 
 
+# Configuring client peers
 mkdir -p generated/wg-clients
-for client_num in {2..11}; do
+for client_num in {1..10}; do
   echo " + Configuring ${client_num} client:"
+  client_interface_ip=$((client_num+1))
 
-  wg pubkey < keys/server_private.key > keys/server_publickey_client_$client_num.key
-  wg genkey | tee keys/client_private_$client_num.key | wg pubkey > keys/client_public_$client_num.key
+  # Generating keys
+  wg genkey | tee "keys/client${client_num}_private.key" | wg pubkey | tee "keys/client${client_num}_public.key" >/dev/null 2>&1
+  wg genpsk | tee "keys/client${client_num}.psk" >/dev/null 2>&1
+  CLIENT_PRIVATE_KEY=$(< "keys/client${client_num}_private.key")
+  CLEINT_PUBLIC_KEY=$(< "keys/client${client_num}_public.key")
+  
+  # Generating client config's
+  cat <<-EOF > "generated/wg-clients/client${client_num}.conf"
+  [Interface]
+  Address = 10.0.0.${client_interface_ip}/32
+  PrivateKey = $(cat "keys/client${client_num}_private.key")
+  DNS = 1.1.1.1
 
-  CLIENT_PRIVATE_KEY=$(< keys/server_publickey_client_$client_num.key)
-  CLIENT_PUBLIC_KEY=$(< keys/client_public_$client_num.key)
+  [Peer]
+  PublicKey = $(cat "keys/server_public.key")
+  PresharedKey = $(cat "keys/client${client_num}.psk")
+  PersistentKeepalive = 25
+  AllowedIPs = 0.0.0.0/0, ::/0
+  Endpoint = ${SERVER_IP}:${SERVER_PORT}
+  EOF
 
-  client_conf="[Interface]\nPrivateKey = ${CLIENT_PRIVATE_KEY}\nAddress = 10.0.0.${client_num}/24\n\n[Peer]\nPublicKey = ${SERVER_PUBLIC_KEY}\nEndpoint = ${SERVER_IP}:${SERVER_PORT}\nAllowedIPs = 0.0.0.0/0"
-   > generated/wg-clients/wireguard-client-${client_num}.conf
-  echo -e $client_conf > generated/wg-clients/wireguard-client-${client_num}.conf
-  peer_conf="\n[Peer]\nPublicKey = ${CLIENT_PUBLIC_KEY}\nAllowedIPs = 10.0.0.${client_num}/32"
-  echo -e $peer_conf >> /etc/wireguard/wg0.conf
-  wg set wg0 peer $CLIENT_PUBLIC_KEY allowed-ips 10.0.0.$client_num
-  echo -e "\n    + Client ${client_num} conf file:\n      ${dir}/generated/wg-clients/wireguard-client-${client_num}.conf"
+  # Enabling peer
+  wg set wg0 peer $CLIENT_PUBLIC_KEY allowed-ips 10.0.0.$client_interface_ip
+  echo -e "\n    + Client ${client_num} conf file:\n      ${dir}/generated/wg-clients/client${client_num}.conf"
+  
+  # QR-codes for clients
   qrencode -t ansiutf8 < generated/wg-clients/wireguard-client-${client_num}.conf
   qrencode -o generated/wg-clients/wireguard-client-${client_num}-qrcode.png < generated/wg-clients/wireguard-client-${client_num}.conf
 done

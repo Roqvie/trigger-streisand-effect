@@ -1,4 +1,4 @@
-# Trigger Streisand effect
+# triggerStreisandEffect()
 <div align="left">
   <img src="https://img.shields.io/github/commit-activity/m/Roqvie/trigger-streisand-effect" />
   <img src="https://img.shields.io/github/issues-raw/Roqvie/trigger-streisand-effect" />
